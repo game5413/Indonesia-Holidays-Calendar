@@ -6,7 +6,17 @@ on:
   pull_request:
     branches: [ "master" ]
   workflow_dispatch:
+    inputs:
+      year:
+        description: Year (default current)
+        required: false
+        type: string
   workflow_call:
+    inputs:
+      year:
+        description: Year (default current)
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -26,10 +36,10 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
     - name: Generate Calendar
-      run: python main.py --output ics,json --name calendar
+      run: python main.py --output ics,json --name calendar ${{ inputs.year && format('--year {0}', inputs.year) || '' }}
     - name: Get current year
       id: date
-      run: echo "date=$(date +'%Y')" >> $GITHUB_OUTPUT
+      run: echo "date=${{ inputs.year || '$(date +%Y)' }}" >> $GITHUB_OUTPUT
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:

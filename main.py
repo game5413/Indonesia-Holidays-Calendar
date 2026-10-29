@@ -50,6 +50,9 @@ if __name__ == '__main__':
     arg_parser.add_argument('--output', type=str, required=True,
                             help='[Output format files]')
 
+    arg_parser.add_argument('--year', type=int, required=False,
+                            help='[Holiday year, default current year]')
+
     args = arg_parser.parse_args()
 
     _format = args.output.split(',')
@@ -64,7 +67,7 @@ if __name__ == '__main__':
         else:
             outputs[_f] = FORMATTER[_f]()
 
-    current_year = dt.datetime.now().year
+    current_year = args.year or dt.datetime.now().year
 
     if args.name is not None:
         name = args.name

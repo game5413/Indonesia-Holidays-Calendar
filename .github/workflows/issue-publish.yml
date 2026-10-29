@@ -1,0 +1,43 @@
+name: Publish From Issue
+
+# Open issue with title = year (e.g. "2027") to publish that year's calendar.
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      year: ${{ steps.y.outputs.year }}
+    steps:
+      - id: y
+        env:
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          t=$(echo "$TITLE" | xargs)
+          [[ "$t" =~ ^[0-9]{4}$ ]] || { echo "Issue title must be a 4-digit year"; exit 1; }
+          echo "year=$t" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: validate
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      year: ${{ needs.validate.outputs.year }}
+
+  close:
+    needs: [validate, publish]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.publish.result }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} -R "$GITHUB_REPOSITORY" -b "Publish: $RESULT. $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          gh issue close ${{ github.event.issue.number }} -R "$GITHUB_REPOSITORY" $([ "$RESULT" = success ] && echo "-r completed" || echo "-r 'not planned'")
